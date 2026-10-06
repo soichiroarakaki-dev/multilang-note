@@ -1,0 +1,873 @@
+<title>翻訳ノート</title>
+<meta name="description" content="日本語を基準に、台湾華語・英語・ベトナム語・ミャンマー語を切り替えて使える翻訳・学習ツール。">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f6f62">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="icon-192.png" type="image/png">
+<!-- iOS（Safari）はmanifest.jsonのホーム画面対応が不十分なため、専用タグで補う -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="翻訳ノート">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #faf8f3;
+    --surface: #ffffff;
+    --surface-2: #f3f1ea;
+    --border: #e4e1d6;
+    --text: #1f1d18;
+    --text-muted: #8a8677;
+    --accent: #2f6f62;
+    --accent-strong: #235349;
+    --accent-soft: #e6efeb;
+    --shadow: 0 1px 2px rgba(31,29,24,0.04), 0 8px 24px -12px rgba(31,29,24,0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15191a;
+      --surface: #1d2224;
+      --surface-2: #242a2b;
+      --border: #303738;
+      --text: #eeece5;
+      --text-muted: #97a09a;
+      --accent: #5fb59f;
+      --accent-strong: #7cc9b4;
+      --accent-soft: #223330;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15191a;
+    --surface: #1d2224;
+    --surface-2: #242a2b;
+    --border: #303738;
+    --text: #eeece5;
+    --text-muted: #97a09a;
+    --accent: #5fb59f;
+    --accent-strong: #7cc9b4;
+    --accent-soft: #223330;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding-inline: 16px;
+  }
+  .shell { width: 100%; max-width: 560px; min-height: 100dvh; display: flex; flex-direction: column; }
+
+  header.top {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    background: var(--bg); padding-block: 18px 10px;
+    display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
+  }
+  .seal {
+    width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Noto Serif TC", serif; font-weight: 700; font-size: 16px; flex-shrink: 0;
+  }
+  header.top h1 { font-size: 17px; margin: 0; font-weight: 600; letter-spacing: .01em; }
+  header.top .sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+  main { flex: 1; padding-block: 16px 96px; display: flex; flex-direction: column; gap: 14px; }
+  .panel { display: flex; flex-direction: column; gap: 14px; }
+  .panel[hidden] { display: none; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+
+  /* --- 言語切替 --- */
+  .lang-switch { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 14px; flex-wrap: wrap; }
+  .lang-switch .side { font-size: 14px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+  .lang-switch .side.active { color: var(--accent); }
+  .lang-switch button#toggleLang {
+    width: 34px; height: 34px; border-radius: 9px; border: none;
+    background: var(--surface-2); color: var(--text);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+  }
+  .lang-switch button#toggleLang:hover { background: var(--accent-soft); }
+  select.lang-select {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    font-family: inherit; font-size: 14px; font-weight: 600; padding: 7px 10px; border-radius: 9px;
+  }
+
+  /* --- 入力カード --- */
+  .input-card { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  textarea#inputText {
+    width: 100%; min-height: 78px; resize: vertical;
+    border: none; outline: none; background: transparent; color: var(--text);
+    font-family: inherit; font-size: 15px; line-height: 1.6;
+  }
+  textarea#inputText::placeholder { color: var(--text-muted); }
+  .input-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  button.primary {
+    border: none; background: var(--accent); color: #fff;
+    padding: 9px 20px; border-radius: 9px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px;
+  }
+  button.primary:hover { background: var(--accent-strong); }
+  button.primary:disabled { opacity: .55; cursor: default; }
+  button.ghost {
+    border: 1px solid var(--border); background: transparent; color: var(--text);
+    padding: 8px 14px; border-radius: 9px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  button.ghost:hover { background: var(--surface-2); }
+  button.pill {
+    border: none; background: var(--surface-2); color: var(--text-muted);
+    padding: 6px 12px; border-radius: 999px; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  button.pill:hover { background: var(--accent-soft); color: var(--accent-strong); }
+  .icon-btn {
+    border: none; background: var(--accent-soft); color: var(--accent-strong);
+    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--accent); color: #fff; }
+  .icon-btn.small { width: 30px; height: 30px; background: var(--surface-2); color: var(--text-muted); }
+
+  /* --- 結果カード --- */
+  .result-card { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .result-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+  .result-main { font-weight: 700; font-size: 22px; line-height: 1.5; text-wrap: balance; }
+  .result-main.zh { font-family: "Noto Serif TC", serif; font-size: 26px; }
+  hr.div { border: none; border-top: 1px solid var(--border); margin: 0; }
+  .result-meaning { font-size: 13.5px; color: var(--text); opacity: .85; }
+  .result-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .loading-row { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; padding: 4px 2px; }
+  .loading-row[hidden] { display: none; }
+  .spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* --- 汎用リスト --- */
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 11px;
+    padding: 10px 12px; color: var(--text-muted);
+  }
+  .search-box input { border: none; outline: none; background: transparent; color: var(--text); font-family: inherit; font-size: 13.5px; width: 100%; }
+  .list-item { padding: 13px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+  .list-item .row { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .list-item .target { font-size: 15px; font-weight: 600; }
+  .list-item .meta { font-size: 11px; color: var(--text-muted); flex-shrink: 0; white-space: nowrap; }
+  .list-item .ja { font-size: 12px; color: var(--text-muted); }
+  .empty-state { text-align: center; color: var(--text-muted); font-size: 13px; padding: 40px 12px; }
+
+  .fav-item { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .fav-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .fav-term { font-weight: 700; font-size: 17px; margin-top: 2px; }
+  .fav-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .fav-actions { display: flex; align-items: center; gap: 4px; }
+
+  /* --- 設定 --- */
+  .settings-group { display: flex; flex-direction: column; gap: 8px; }
+  .settings-group > .label { font-size: 12px; color: var(--text-muted); font-weight: 600; padding-left: 4px; }
+  .settings-card { overflow: hidden; }
+  .settings-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border-bottom: 1px solid var(--border); }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row .title { font-size: 14px; }
+  .settings-row .desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  select.inline-select { border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 12.5px; padding: 6px 8px; border-radius: 8px; }
+  .settings-stack { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-bottom: 1px solid var(--border); }
+  .settings-stack:last-child { border-bottom: none; }
+  .settings-stack .field-label { font-size: 12.5px; color: var(--text-muted); }
+  input.text-input { width: 100%; box-sizing: border-box; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px; padding: 9px 10px; border-radius: 8px; }
+  .voice-status { font-size: 11.5px; padding: 2px 4px; }
+  .voice-status.on { color: #28a745; }
+  .voice-status.ok { color: var(--accent-strong); }
+  .voice-status.off { color: var(--text-muted); }
+  .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .track { position: absolute; inset: 0; background: var(--border); border-radius: 999px; cursor: pointer; transition: background .15s; }
+  .switch .track::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .15s; }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::before { transform: translateX(18px); }
+  .settings-note { font-size: 11.5px; color: var(--text-muted); line-height: 1.7; padding: 2px 4px; }
+
+  /* --- 下部ナビ --- */
+  nav.bottom { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; background: var(--bg); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 5; }
+  nav.bottom .inner { width: 100%; max-width: 560px; display: flex; }
+  nav.bottom button { flex: 1; border: none; background: transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px 8px; color: var(--text-muted); font-family: inherit; }
+  nav.bottom button.active { color: var(--accent); }
+  nav.bottom button span { font-size: 10.5px; font-weight: 500; }
+
+  .toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%) translateY(8px); background: var(--text); color: var(--bg); font-size: 13px; padding: 10px 16px; border-radius: 10px; opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 20; max-width: 90vw; text-align: center; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+
+<div class="shell">
+  <header class="top">
+    <div class="seal">翻</div>
+    <div>
+      <h1>翻訳ノート</h1>
+      <div class="sub" id="headerSub">日本語 ⇔ 台湾華語</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ① 翻訳 -->
+    <section class="panel" id="panel-translate">
+      <div class="card lang-switch">
+        <span class="side active" id="labelJa">日本語</span>
+        <button id="toggleLang" aria-label="翻訳の方向を入れ替える">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M3 7h18"/><path d="M7 21l-4-4 4-4"/><path d="M21 17H3"/></svg>
+        </button>
+        <select class="lang-select" id="targetLangSelect">
+          <option value="zh-TW">台湾華語</option>
+          <option value="en">英語</option>
+          <option value="vi">ベトナム語</option>
+          <option value="my">ミャンマー語</option>
+        </select>
+      </div>
+
+      <div class="card input-card">
+        <textarea id="inputText" placeholder="日本語を入力…"></textarea>
+        <div class="input-actions">
+          <button class="primary" id="translateBtn"><span id="translateBtnLabel">翻訳する</span></button>
+        </div>
+      </div>
+
+      <div id="loadingRow" class="loading-row" hidden>
+        <div class="spinner"></div>
+        <span id="loadingLabel">翻訳しています…</span>
+      </div>
+
+      <div class="card result-card" id="resultCard" hidden>
+        <div class="result-top">
+          <div style="flex:1; min-width:0;">
+            <div class="result-main" id="resultText"></div>
+          </div>
+          <button class="icon-btn" id="speakBtn" aria-label="発音を聞く">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </button>
+        </div>
+        <hr class="div">
+        <div class="result-meaning" id="resultMeaning"></div>
+        <div class="result-actions">
+          <button class="pill" id="favBtn">お気に入りに追加</button>
+          <button class="pill" id="copyBtn">コピー</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ② 履歴 -->
+    <section class="panel" id="panel-history" hidden>
+      <div class="search-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="historySearch" placeholder="履歴を検索" />
+      </div>
+      <div id="historyList" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </section>
+
+    <!-- ③ お気に入り -->
+    <section class="panel" id="panel-favorites" hidden>
+      <div id="favoritesList" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </section>
+
+    <!-- ④ 設定 -->
+    <section class="panel" id="panel-settings" hidden>
+      <div class="settings-group">
+        <div class="label">対象言語</div>
+        <div class="card settings-card">
+          <div class="settings-row">
+            <div>
+              <div class="title">既定の対象言語</div>
+              <div class="desc">アプリ起動時に選択されている言語（上部のドロップダウンと連動）</div>
+            </div>
+            <select class="inline-select" id="defaultLangSelect">
+              <option value="zh-TW">台湾華語</option>
+              <option value="en">英語</option>
+              <option value="vi">ベトナム語</option>
+              <option value="my">ミャンマー語</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="label">表示</div>
+        <div class="card settings-card">
+          <div class="settings-row">
+            <div class="title">読み上げ速度</div>
+            <select class="inline-select" id="speedSelect">
+              <option value="slow">ゆっくり</option>
+              <option value="normal" selected>普通</option>
+              <option value="fast">速い</option>
+            </select>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="title">翻訳後に自動で読み上げ</div>
+              <div class="desc">翻訳結果が出たら対象言語の発音を自動再生します</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="autoSpeakToggle" checked>
+              <span class="track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="label">高品質音声（Google Cloud Text-to-Speech ／ 音読さん）</div>
+        <div class="card settings-card">
+          <div class="settings-row">
+            <div>
+              <div class="title">Google Cloud/音読さん音声を使う</div>
+              <div class="desc">オンならプロキシ経由で高品質のニューラル音声を使用。オフなら端末内蔵の音声（無料・標準）を使用</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="gcpEnabledToggle">
+              <span class="track"></span>
+            </label>
+          </div>
+          <div class="settings-stack">
+            <div class="field-label">プロキシURL（このアプリ専用のCloudflare Workerのエンドポイント）</div>
+            <input type="text" class="text-input" id="gcpWorkerUrlInput" placeholder="https://your-multilang-worker.example.workers.dev">
+            <div class="settings-note">台湾華語ノートのWorker URLとは別の、このアプリ専用のWorkerを指定してください。</div>
+          </div>
+          <div class="settings-stack">
+            <div class="field-label">共有シークレット（設定していれば入力）</div>
+            <input type="password" class="text-input" id="gcpSecretInput" placeholder="任意">
+          </div>
+          <div class="settings-row">
+            <div class="title">音声の種類</div>
+            <select class="inline-select" id="gcpVoiceSelect"></select>
+          </div>
+          <div class="settings-row">
+            <div class="title">接続テスト</div>
+            <button class="ghost" id="gcpTestBtn">テスト再生</button>
+          </div>
+          <div class="settings-stack">
+            <span class="voice-status off" id="gcpStatusText">未設定（端末内蔵の音声を使用中）</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="label">その他</div>
+        <div class="card settings-card">
+          <div class="settings-row">
+            <div>
+              <div class="title">プライバシーについて</div>
+              <div class="desc">入力文は翻訳のため設定したCloudflare Worker（Google Cloud）へ送信されます。履歴・お気に入りはこの端末内に保存されます。</div>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="title">履歴をすべて削除</div>
+            <button class="ghost" id="clearHistoryBtn">削除</button>
+          </div>
+          <div class="settings-row">
+            <div class="title">バージョン情報</div>
+            <span style="font-size:12px; color:var(--text-muted);">v0.1（多言語版 Web MVP）</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom">
+    <div class="inner">
+      <button class="tab-btn active" data-tab="translate">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14M8 5v.5M8 8c0 5-2 8-4 9.5M8 8c0 4 2 6 4 7"/><path d="M13 21l4-9 4 9M14.5 18h5"/></svg>
+        <span>翻訳</span>
+      </button>
+      <button class="tab-btn" data-tab="history">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+        <span>履歴</span>
+      </button>
+      <button class="tab-btn" data-tab="favorites">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.8-6.2 3.8 1.6-7-5.4-4.7 7.1-.6z"/></svg>
+        <span>お気に入り</span>
+      </button>
+      <button class="tab-btn" data-tab="settings">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        <span>設定</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  (function () {
+    "use strict";
+
+  /* ============ 対応言語（Worker側 LANGUAGES と対応させること） ============ */
+  const LANGUAGES = {
+    "zh-TW": { label: "台湾華語", bcp47: "zh-TW", isZh: true,
+      voices: [
+        { value: "cmn-TW-Wavenet-A", label: "Wavenet A（女性）" },
+        { value: "cmn-TW-Wavenet-B", label: "Wavenet B（男性）" },
+        { value: "cmn-TW-Wavenet-C", label: "Wavenet C（男性）" },
+      ] },
+    en: { label: "英語", bcp47: "en-US", isZh: false,
+      voices: [
+        { value: "en-US-Wavenet-D", label: "Wavenet D（男性）" },
+        { value: "en-US-Wavenet-F", label: "Wavenet F（女性）" },
+        { value: "en-US-Wavenet-A", label: "Wavenet A（男性）" },
+      ] },
+    vi: { label: "ベトナム語", bcp47: "vi-VN", isZh: false,
+      voices: [
+        { value: "vi-VN-Wavenet-A", label: "Wavenet A（女性）" },
+        { value: "vi-VN-Wavenet-B", label: "Wavenet B（男性）" },
+        { value: "vi-VN-Wavenet-C", label: "Wavenet C（女性）" },
+      ] },
+    my: { label: "ミャンマー語", bcp47: "my-MM", isZh: false,
+      voices: [
+        { value: "my-MM-NilarNeural", label: "Nilar（女性・音読さん）" },
+        { value: "my-MM-ThihaNeural", label: "Thiha（男性・音読さん）" },
+      ] },
+  };
+
+  /* ============ 状態・永続化（localStorage） ============ */
+  const state = {
+    direction: "ja-to-target", // "ja-to-target" | "target-to-ja"
+    targetLang: "zh-TW",
+    history: [],
+    favorites: [],
+    settings: {
+      speed: "normal", autoSpeak: true,
+      gcpEnabled: false, gcpWorkerUrl: "", gcpSecret: "",
+      gcpVoiceByLang: {},
+    },
+    lastResult: null,
+  };
+
+  function loadLocal(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+  }
+  function saveLocal(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+
+  function initState() {
+    state.history = loadLocal("mln_history", []);
+    state.favorites = loadLocal("mln_favorites", []);
+    Object.assign(state.settings, loadLocal("mln_settings", {}));
+    if (!state.settings.gcpVoiceByLang) state.settings.gcpVoiceByLang = {};
+    state.targetLang = loadLocal("mln_targetLang", "zh-TW");
+    if (!LANGUAGES[state.targetLang]) state.targetLang = "zh-TW";
+  }
+
+  function persistSettings() { saveLocal("mln_settings", state.settings); }
+  function persistHistory() { saveLocal("mln_history", state.history); }
+  function persistFavorites() { saveLocal("mln_favorites", state.favorites); }
+  function persistTargetLang() { saveLocal("mln_targetLang", state.targetLang); }
+
+  function currentVoice() {
+    const lang = LANGUAGES[state.targetLang];
+    return state.settings.gcpVoiceByLang[state.targetLang] || lang.voices[0].value;
+  }
+
+  /* ============ UI ============ */
+  const $ = (id) => document.getElementById(id);
+  const tabs = document.querySelectorAll(".tab-btn");
+  const panels = { translate: $("#panel-translate"), history: $("#panel-history"), favorites: $("#panel-favorites"), settings: $("#panel-settings") };
+
+  tabs.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabs.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      Object.entries(panels).forEach(([key, el]) => { if (el) el.hidden = key !== btn.dataset.tab; });
+    });
+  });
+
+  function showToast(msg) {
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+
+  function updateLangUI() {
+    const lang = LANGUAGES[state.targetLang];
+    $("#targetLangSelect").value = state.targetLang;
+    $("#defaultLangSelect").value = state.targetLang;
+    const jaActive = state.direction === "ja-to-target";
+    $("#labelJa").classList.toggle("active", jaActive);
+    $("#headerSub").textContent = "日本語 ⇔ " + lang.label + "（" + (jaActive ? "日本語→" + lang.label : lang.label + "→日本語") + "）";
+    $("#inputText").placeholder = jaActive ? "日本語を入力…" : (lang.label + "を入力…");
+    $("#loadingLabel").textContent = (jaActive ? lang.label : "日本語") + "に翻訳しています…";
+
+    // 音声の種類セレクトを、選択中の言語のボイス一覧に差し替える
+    const voiceSelect = $("#gcpVoiceSelect");
+    voiceSelect.innerHTML = "";
+    lang.voices.forEach((v) => {
+      const opt = document.createElement("option");
+      opt.value = v.value; opt.textContent = v.label;
+      voiceSelect.appendChild(opt);
+    });
+    voiceSelect.value = currentVoice();
+  }
+
+  $("#targetLangSelect").addEventListener("change", (e) => {
+    state.targetLang = e.target.value;
+    persistTargetLang();
+    updateLangUI();
+    updateGcpStatusText();
+  });
+  $("#defaultLangSelect").addEventListener("change", (e) => {
+    state.targetLang = e.target.value;
+    persistTargetLang();
+    updateLangUI();
+    updateGcpStatusText();
+  });
+  $("#toggleLang").addEventListener("click", () => {
+    state.direction = state.direction === "ja-to-target" ? "target-to-ja" : "ja-to-target";
+    updateLangUI();
+  });
+
+  /* ============ 設定の反映 ============ */
+  function applySettingsToUI() {
+    $("#speedSelect").value = state.settings.speed;
+    $("#autoSpeakToggle").checked = !!state.settings.autoSpeak;
+    $("#gcpEnabledToggle").checked = !!state.settings.gcpEnabled;
+    $("#gcpWorkerUrlInput").value = state.settings.gcpWorkerUrl || "";
+    $("#gcpSecretInput").value = state.settings.gcpSecret || "";
+    updateLangUI();
+    updateGcpStatusText();
+  }
+
+  $("#speedSelect").addEventListener("change", (e) => { state.settings.speed = e.target.value; persistSettings(); });
+  $("#autoSpeakToggle").addEventListener("change", (e) => { state.settings.autoSpeak = e.target.checked; persistSettings(); });
+  $("#gcpEnabledToggle").addEventListener("change", (e) => { state.settings.gcpEnabled = e.target.checked; persistSettings(); updateGcpStatusText(); });
+  $("#gcpWorkerUrlInput").addEventListener("change", (e) => { state.settings.gcpWorkerUrl = e.target.value.trim(); persistSettings(); updateGcpStatusText(); });
+  $("#gcpSecretInput").addEventListener("change", (e) => { state.settings.gcpSecret = e.target.value; persistSettings(); });
+  $("#gcpVoiceSelect").addEventListener("change", (e) => {
+    state.settings.gcpVoiceByLang[state.targetLang] = e.target.value;
+    persistSettings();
+    updateGcpStatusText();
+  });
+  $("#gcpTestBtn").addEventListener("click", () => {
+    unlockSpeech();
+    const samples = { "zh-TW": "你好，這是測試。", en: "Hello, this is a test.", vi: "Xin chào, đây là bản thử nghiệm.", my: "မင်္ဂလာပါ၊ ဒါက စမ်းသပ်မှုပါ။" };
+    speakText(samples[state.targetLang] || LANGUAGES[state.targetLang].label);
+  });
+
+  function updateGcpStatusText() {
+    const el = $("#gcpStatusText");
+    const lang = LANGUAGES[state.targetLang];
+    // ✅ ミャンマー語は音読さん API で対応済み
+    if (state.targetLang === "my") {
+      el.textContent = "✅ ミャンマー語：音読さん API で対応済み";
+      el.className = "voice-status on";
+      return;
+    }
+    if (state.settings.gcpEnabled && state.settings.gcpWorkerUrl) {
+      el.textContent = "有効：" + lang.label + " / " + currentVoice() + " を使用中";
+      el.className = "voice-status ok";
+    } else {
+      el.textContent = "未設定（端末内蔵の音声を使用中）";
+      el.className = "voice-status off";
+    }
+  }
+
+  $("#clearHistoryBtn").addEventListener("click", () => {
+    state.history = [];
+    persistHistory();
+    renderHistory();
+    showToast("履歴を削除しました");
+  });
+
+  /* ============ 履歴・お気に入り ============ */
+  function addHistory(entry) {
+    entry.id = "h" + Date.now();
+    entry.createdAt = Date.now();
+    state.history.unshift(entry);
+    if (state.history.length > 200) state.history.length = 200;
+    persistHistory();
+    renderHistory();
+  }
+  function deleteHistory(id) {
+    state.history = state.history.filter((h) => h.id !== id);
+    persistHistory();
+    renderHistory();
+  }
+  function addFavorite(entry) {
+    entry.id = "f" + Date.now();
+    entry.createdAt = Date.now();
+    state.favorites.unshift(entry);
+    persistFavorites();
+    renderFavorites();
+  }
+  function deleteFavorite(id) {
+    state.favorites = state.favorites.filter((f) => f.id !== id);
+    persistFavorites();
+    renderFavorites();
+  }
+
+  function escapeHtml(s) {
+    return (s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function renderHistory() {
+    const q = ($("#historySearch").value || "").trim();
+    const list = $("#historyList");
+    list.innerHTML = "";
+    const items = state.history.filter((h) => !q || h.targetText.includes(q) || h.meaningJa.includes(q));
+    if (items.length === 0) {
+      list.innerHTML = '<div class="empty-state">履歴はまだありません。</div>';
+      return;
+    }
+    items.forEach((h) => {
+      const div = document.createElement("div");
+      div.className = "card list-item";
+      div.title = "タップで削除";
+      div.innerHTML = `
+        <div class="row">
+          <div class="target">${escapeHtml(h.targetText)}</div>
+          <div class="meta">${LANGUAGES[h.targetLang] ? LANGUAGES[h.targetLang].label : ""}</div>
+        </div>
+        <div class="ja">${escapeHtml(h.meaningJa)}</div>`;
+      div.addEventListener("click", () => deleteHistory(h.id));
+      list.appendChild(div);
+    });
+  }
+  $("#historySearch").addEventListener("input", renderHistory);
+
+  function renderFavorites() {
+    const list = $("#favoritesList");
+    list.innerHTML = "";
+    if (state.favorites.length === 0) {
+      list.innerHTML = '<div class="empty-state">お気に入りはまだありません。</div>';
+      return;
+    }
+    state.favorites.forEach((f) => {
+      const div = document.createElement("div");
+      div.className = "card fav-item";
+      div.innerHTML = `
+        <div class="fav-top">
+          <div>
+            <div class="fav-term">${escapeHtml(f.targetText)}</div>
+            <div class="fav-sub">${LANGUAGES[f.targetLang] ? LANGUAGES[f.targetLang].label : ""}　${escapeHtml(f.meaningJa)}</div>
+          </div>
+          <div class="fav-actions">
+            <button class="icon-btn small" data-action="speak" aria-label="発音を聞く">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/></svg>
+            </button>
+            <button class="icon-btn small" data-action="delete" aria-label="削除">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </div>
+        </div>`;
+      div.querySelector('[data-action="speak"]').addEventListener("click", () => {
+        const prevLang = state.targetLang;
+        state.targetLang = f.targetLang;
+        speakText(f.targetText);
+        state.targetLang = prevLang;
+      });
+      div.querySelector('[data-action="delete"]').addEventListener("click", () => deleteFavorite(f.id));
+      list.appendChild(div);
+    });
+  }
+
+  /* ============ 翻訳（Cloudflare Worker経由） ============ */
+  async function translateWithProxy(text, targetLang, direction) {
+    if (!state.settings.gcpWorkerUrl) {
+      throw new Error("Workerのプロキシ URLが設定されていません。設定画面で入力してください。");
+    }
+    const headers = { "Content-Type": "application/json" };
+    if (state.settings.gcpSecret) headers["X-App-Secret"] = state.settings.gcpSecret;
+    const base = state.settings.gcpWorkerUrl.replace(/\/+$/, "");
+    const resp = await fetch(base + "/translate", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ text, targetLang, direction }),
+    });
+    if (!resp.ok) {
+      let detail = "";
+      try { detail = (await resp.json()).error || ""; } catch (e) {}
+      throw new Error("翻訳サーバーからエラーが返されました（" + resp.status + (detail ? "：" + detail : "") + "）");
+    }
+    const data = await resp.json();
+    if (!data.resultText) throw new Error("翻訳結果が空でした。");
+    return data;
+  }
+
+  async function runTranslate() {
+    const text = $("#inputText").value.trim();
+    if (!text) return;
+
+    // クリックという「操作の直後」のうちに無音発話を行い、
+    // このあとの非同期処理（翻訳API呼び出し）を挟んでも
+    // 自動読み上げが "not-allowed" でブロックされないようにする。
+    unlockSpeech();
+
+    $("#translateBtn").disabled = true;
+    $("#loadingRow").hidden = false;
+    $("#resultCard").hidden = true;
+
+    try {
+      const data = await translateWithProxy(text, state.targetLang, state.direction);
+      const targetText = state.direction === "ja-to-target" ? data.resultText : text;
+      const meaningJa = state.direction === "ja-to-target" ? text : data.meaningJa;
+
+      const result = { targetLang: state.targetLang, targetText, meaningJa };
+      state.lastResult = result;
+
+      const lang = LANGUAGES[state.targetLang];
+      const resultTextEl = $("#resultText");
+      resultTextEl.textContent = result.targetText;
+      resultTextEl.classList.toggle("zh", !!lang.isZh);
+      $("#resultMeaning").textContent = "意味：" + result.meaningJa;
+      $("#resultCard").hidden = false;
+
+      addHistory({ targetLang: result.targetLang, targetText: result.targetText, meaningJa: result.meaningJa });
+
+      if (state.settings.autoSpeak) {
+        speakText(result.targetText);
+      }
+    } catch (e) {
+      showToast(e && e.message ? e.message : "翻訳に失敗しました。もう一度お試しください。");
+    } finally {
+      $("#translateBtn").disabled = false;
+      $("#loadingRow").hidden = true;
+    }
+  }
+
+  $("#translateBtn").addEventListener("click", runTranslate);
+  $("#inputText").addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") runTranslate();
+  });
+  $("#copyBtn").addEventListener("click", async () => {
+    if (!state.lastResult) return;
+    try { await navigator.clipboard.writeText(state.lastResult.targetText); showToast("コピーしました"); }
+    catch (e) { showToast("コピーできませんでした"); }
+  });
+  $("#favBtn").addEventListener("click", () => {
+    if (!state.lastResult) return;
+    addFavorite({ targetLang: state.lastResult.targetLang, targetText: state.lastResult.targetText, meaningJa: state.lastResult.meaningJa });
+    showToast("お気に入りに追加しました");
+  });
+  $("#speakBtn").addEventListener("click", () => {
+    if (state.lastResult) speakText(state.lastResult.targetText);
+  });
+
+  /* ============ 音声読み上げ ============ */
+  let speechUnlocked = false;
+  function unlockSpeech() {
+    if (speechUnlocked || !("speechSynthesis" in window)) return;
+    try {
+      const u = new SpeechSynthesisUtterance("");
+      u.volume = 0;
+      speechSynthesis.speak(u);
+      speechSynthesis.cancel();
+    } catch (e) { /* 無視 */ }
+    speechUnlocked = true;
+  }
+  document.addEventListener("pointerdown", unlockSpeech, { once: true });
+  document.addEventListener("keydown", unlockSpeech, { once: true });
+
+  let cachedVoices = [];
+  if ("speechSynthesis" in window) {
+    const refreshCachedVoices = () => { cachedVoices = speechSynthesis.getVoices() || []; };
+    refreshCachedVoices();
+    speechSynthesis.addEventListener("voiceschanged", refreshCachedVoices);
+  }
+
+  function pickVoiceForLang(voices, bcp47) {
+    if (!voices || voices.length === 0) return null;
+    const base = bcp47.split("-")[0];
+    return (
+      voices.find((v) => v.lang && v.lang.toLowerCase() === bcp47.toLowerCase()) ||
+      voices.find((v) => v.lang && v.lang.toLowerCase().startsWith(base.toLowerCase())) ||
+      null
+    );
+  }
+
+  async function speakText(text) {
+    if (!text) return;
+    if (state.settings.gcpEnabled && state.settings.gcpWorkerUrl) {
+      const ok = await speakWithGcp(text);
+      if (ok) return;
+      showToast("高品質音声への接続に失敗したため、端末内蔵の音声で再生します。");
+    }
+    // ✅ ミャンマー語は Web Speech API 未対応のため、明示的に警告
+    if (state.targetLang === "my") {
+      showToast("ミャンマー語は高品質音声での再生のみ対応しています。");
+      return;
+    }
+    speakWithBrowser(text);
+  }
+
+  // --- Google Cloud Text-to-Speech（プロキシ経由） ---
+  async function speakWithGcp(text) {
+    try {
+      const rate = state.settings.speed === "slow" ? 0.75 : state.settings.speed === "fast" ? 1.25 : 1.0;
+      const headers = { "Content-Type": "application/json" };
+      if (state.settings.gcpSecret) headers["X-App-Secret"] = state.settings.gcpSecret;
+      const base = state.settings.gcpWorkerUrl.replace(/\/+$/, "");
+      const resp = await fetch(base + "/", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ text, targetLang: state.targetLang, voice: currentVoice(), rate }),
+      });
+      if (!resp.ok) {
+        let detail = "";
+        try { detail = (await resp.json()).error || ""; } catch (e) {}
+        showToast("高品質音声エラー（" + resp.status + (detail ? "：" + detail : "") + "）");
+        return false;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      audio.onerror = () => URL.revokeObjectURL(url);
+      await audio.play();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // --- 端末内蔵の音声（Web Speech API・無料） ---
+  function speakWithBrowser(text) {
+    if (!("speechSynthesis" in window)) {
+      showToast("この端末では音声読み上げが利用できません。");
+      return;
+    }
+    const lang = LANGUAGES[state.targetLang];
+    const voice = pickVoiceForLang(cachedVoices, lang.bcp47);
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang.bcp47;
+    if (voice) utter.voice = voice;
+    utter.rate = state.settings.speed === "slow" ? 0.75 : state.settings.speed === "fast" ? 1.25 : 1.0;
+    utter.onerror = (ev) => {
+      if (ev && ev.error === "not-allowed") {
+        showToast("自動再生がブロックされました。スピーカーのアイコンをタップして再生してください。");
+      } else {
+        showToast("読み上げ中にエラーが発生しました。");
+      }
+    };
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+    if (!voice) {
+      showToast("この端末に" + lang.label + "（" + lang.bcp47 + "）の音声が見つかりません。");
+    }
+  }
+
+  /* ============ 初期化 ============ */
+  initState();
+  applySettingsToUI();
+  renderHistory();
+  renderFavorites();
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => { /* 登録できない環境は無視 */ });
+      });
+    }
+  })();
+});
+</script>
